@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h1>Відповідь сервера</h1>
+<img src="img/Labwork2.2.4.png"></center>
+
+<center><h2>Код HTTP-сервера</h2></center>
+<pre><code>
+    const http = require('http');
+
+    const server = http.createServer((req, res) =&gt; {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`
+            &lt;html&gt;
+            &lt;head&gt;
+                &lt;title&gt;Мій сервер&lt;/title&gt;
+                &lt;style&gt;
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                    h1 { color: #bd787d; }
+                &lt;/style&gt;
+            &lt;/head&gt;
+            &lt;body&gt;
+                &lt;h1&gt;Hello world&lt;/h1&gt;
+                &lt;p&gt;Server message&lt;/p&gt;
+            &lt;/body&gt;
+            &lt;/html&gt;
+        `);
+    });
+    
+    server.listen(3000, () =&gt; {
+        console.log('Сервер запущено на порту 3000');
+    });
+    
+    
+
+</code></pre>
+</body>
+</html>
