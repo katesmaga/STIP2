@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h2>JavaScript код</h2></center>
+<pre><code>
+    document.getElementById("loadEvents").addEventListener("click", () => {
+        fetch("http://localhost:3000/api/events") 
+            .then(response => response.json())
+            .then(events => {
+                const eventList = document.getElementById("eventList");
+                eventList.innerHTML = ""; 
+                events.forEach(event => {
+                    const li = document.createElement("li");
+                    li.textContent = `${event.title} - ${event.date}`;
+                    eventList.appendChild(li);
+                });
+            })
+            .catch(error => console.error("Помилка:", error));
+    });
+    
+
+</code></pre>
+</body>
+</html>
