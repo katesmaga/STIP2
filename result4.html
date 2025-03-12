@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      button {
+        padding: 10px 20px;
+        margin-top: 20px;
+        background-color: #deacb8;
+        color: black;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16pt;
+      }
+
+      h1 {
+        color: #b56a84;
+        font-size: 24pt;
+      }
+
+      input {
+        padding: 10px;
+        font-size: 16pt;
+        border: 2px solid #deacb8;
+        border-radius: 5px;
+        width: 250px;
+        text-align: center;
+      }
+
+      p {
+        font-size: 18pt;
+        margin-top: 15px;
+        color: #444;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Перевірка Express API</h1>
+
+    <button onclick="getQuote()">Отримати цитату</button>
+    <p id="quote"></p>
+
+    <input type="text" id="wordInput" placeholder="Введіть слово" />
+    <button onclick="splitWord()">Розбити слово</button>
+    <p id="splitResult"></p>
+
+    <script>
+      function getQuote() {
+        fetch("http://localhost:3000/api/inspire")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("quote").innerText = data.quote;
+          })
+          .catch((error) => console.error("Помилка:", error));
+      }
+
+      function splitWord() {
+        const word = document.getElementById("wordInput").value;
+        fetch("http://localhost:3000/api/split-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ word }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("splitResult").innerText =
+              data.split.join(" ");
+          })
+          .catch((error) => console.error("Помилка:", error));
+      }
+    </script>
+  </body>
+</html>

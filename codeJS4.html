@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h2>Клієнтський JavaScript код</h2></center>
+<pre><code>
+    function getQuote() {
+        fetch("http://localhost:3000/api/inspire")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("quote").innerText = data.quote;
+          })
+          .catch((error) => console.error("Помилка:", error));
+      }
+
+      function splitWord() {
+        const word = document.getElementById("wordInput").value;
+        fetch("http://localhost:3000/api/split-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ word }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("splitResult").innerText =
+              data.split.join(" ");
+          })
+          .catch((error) => console.error("Помилка:", error));
+      }
+</code></pre>
+<center><h2>Серверний JavaScript код</h2></center>
+<pre><code>
+    const express = require('express');
+    const cors = require('cors');
+    const app = express();
+    const PORT = 3000;
+    
+    app.use(cors());
+    app.use(express.json());
+    
+    app.use((req, res, next) => {
+        console.log(`${req.method} ${req.url}`);
+        next(); 
+    });
+    
+    app.get('/', (req, res) => {
+        res.send('Привіт, Express!');
+    });
+    
+    app.get('/api/inspire', (req, res) => {
+        res.json({ quote: 'Ти можеш все, якщо захочеш!' });
+    });
+    
+    app.post('/api/split-word', (req, res) => {
+        const { word } = req.body;
+        if (!word || typeof word !== 'string') {
+            return res.status(400).json({ error: 'Будь ласка, надішліть слово у форматі рядка.' });
+        }
+        res.json({ split: word.split('') });
+    });
+    
+    app.use((err, req, res, next) => {
+        console.error('Помилка:', err.message);
+        res.status(500).json({ error: 'Помилка на сервері' });
+    });
+    
+    app.listen(PORT, () => {
+        console.log(`Сервер запущено на http://localhost:${PORT}`);
+    });
+    
+</code></pre>
+</body>
+</html>
