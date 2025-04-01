@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h2>swagger.js</h2></center>
+<pre><code>
+    const swaggerJsdoc = require("swagger-jsdoc");
+    const swaggerUi = require("swagger-ui-express");
+    
+    const options = {
+      definition: {
+        openapi: "3.0.0",
+        info: {
+          title: "Classified Board API",
+          version: "1.0.0",
+          description: "API for managing classified announcements",
+        },
+      },
+      apis: ["./routes/*.js"],
+    };
+    
+    const swaggerSpec = swaggerJsdoc(options);
+    
+    module.exports = { swaggerUi, swaggerSpec };
+      
+</code></pre>
+</body>
+</html>

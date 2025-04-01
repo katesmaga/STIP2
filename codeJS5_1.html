@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h2>index.js</h2></center>
+<pre><code>
+    const express = require("express");
+    const cors = require("cors");
+    const mongoose = require("mongoose");
+    const User = require("./models/User");
+    const jwt = require("jsonwebtoken");
+    const secretKey = "secret-key";
+    const bodyParser = require("body-parser");
+    const announcementRoutes = require("./routes/announcements");
+    const http = require("http");
+    const socketIo = require("socket.io");
+    const Announcement = require("./models/Announcement");
+    
+    const app = express();
+    const PORT = 3000;
+    
+    const server = http.createServer(app);
+    const io = socketIo(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+      },
+    });
+    
+    const { swaggerUi, swaggerSpec } = require("./swagger");
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    
+    mongoose
+      .connect("mongodb://localhost/classified-board", {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      })
+      .then(() => console.log("MongoDB connected"))
+      .catch((err) => console.log("MongoDB connection error:", err));
+    
+    mongoose.connection.on("connected", () => {
+      console.log("MongoDB connected");
+    });
+    
+    app.use(bodyParser.json());
+    
+    app.use(
+      cors({
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
+      })
+    );
+    
+    app.use("/api/announcements", authenticate, announcementRoutes);
+    
+    app.use(express.json());
+    
+    app.get("/", (req, res) => {
+      res.send("Welcome to the Classified Board API");
+    });
+    
+    app.post("/register", async (req, res) => {
+      const { username, password } = req.body;
+    
+      if (!username || !password) {
+        return res
+          .status(400)
+          .json({ message: "Username and password are required" });
+      }
+    
+      try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+          return res.status(400).json({ message: "User already exists" });
+        }
+    
+        const user = new User({ username, password });
+        await user.save();
+    
+        const token = jwt.sign({ id: user._id }, secretKey);
+        res.status(201).json({ token });
+      } catch (error) {
+        console.error("Error during registration:", error);
+        res.status(500).json({ message: "Error creating user" });
+      }
+    });
+    
+    app.post("/login", async (req, res) => {
+      const { username, password } = req.body;
+      try {
+        const user = await User.findOne({ username });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+    
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+          return res.status(401).json({ message: "Invalid password" });
+        }
+    
+        const token = jwt.sign({ id: user._id }, secretKey);
+        res.json({ token });
+      } catch (error) {
+        res.status(500).json({ message: "Error logging in" });
+      }
+    });
+    
+    server.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+    
+    io.on("connection", (socket) => {
+      console.log("A user connected");
+    
+      socket.on("authenticate", (token) => {
+        try {
+          const decoded = jwt.verify(token, secretKey);
+          socket.user = decoded;
+          console.log("User authenticated:", decoded);
+        } catch (error) {
+          console.error("Invalid WebSocket token:", error);
+          socket.disconnect(); // Відключаємо неавторизованого користувача
+        }
+      });
+    
+      socket.on("new-announcement", async (data) => {
+        if (!socket.user) {
+          console.log(
+            "Unauthorized WebSocket user tried to create an announcement."
+          );
+          return;
+        }
+    
+        try {
+          const newAnnouncement = new Announcement({
+            title: data.title,
+            description: data.description,
+            price: data.price,
+            userId: socket.user.id,
+          });
+    
+          await newAnnouncement.save();
+          io.emit("new-announcement", newAnnouncement);
+        } catch (error) {
+          console.error("Error saving announcement:", error);
+        }
+      });
+    
+      socket.on("disconnect", () => {
+        console.log("A user disconnected");
+      });
+    });
+    
+    function authenticate(req, res, next) {
+      const token = req.headers["authorization"]?.split(" ")[1];
+      console.log("Токен отриманий в header:", token);
+    
+      if (!token) {
+        console.log("Token not provided");
+        return res.status(401).json({ message: "Token not provided" });
+      }
+    
+      try {
+        const decoded = jwt.verify(token, secretKey);
+        console.log("Розшифрований токен:", decoded);
+        req.user = decoded;
+        next();
+      } catch (error) {
+        console.error("Помилка при перевірці токена:", error);
+        return res.status(401).json({ message: "Invalid token" });
+      }
+    }
+    
+    
+</code></pre>
+</body>
+</html>
