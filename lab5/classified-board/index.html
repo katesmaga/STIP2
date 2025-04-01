@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classified Board</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-top: 20px;
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #deacb8;
+      padding-bottom: 5px;
+    }
+    p {
+      color: #555;
+    }
+    
+    /* Контейнер для форм */
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 900px;
+      margin: 20px auto;
+    }
+    @media (min-width: 768px) {
+      .container {
+         flex-direction: row;
+         justify-content: space-between;
+      }
+      .register-form, .announcement-form {
+         width: 48%;
+      }
+    }
+    
+    /* Спільні стилі для блоків форм та оголошень */
+    .register-form, .announcement-form, .announcements-list-wrapper {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    /* Стилізація полів вводу та textarea */
+    .register-form input, 
+    .announcement-form input, 
+    .register-form textarea, 
+    .announcement-form textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #deacb8;
+      box-shadow: 0 0 5px rgba(222, 172, 184, 0.6);
+    }
+    
+    /* Кнопки */
+    .register-form button, .announcement-form button {
+      display: inline-block;
+      padding: 10px 20px;
+      margin-top: 20px;
+      background-color: #deacb8;
+      color: black;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16pt;
+      transition: background-color 0.3s ease;
+    }
+    .register-form button:hover, .announcement-form button:hover {
+      background-color: #f287dc;
+    }
+    
+    /* Стилі для оголошень */
+    .announcements-list-wrapper {
+      margin-top: 20px;
+    }
+    .announcements-list {
+      margin-top: 20px;
+    }
+    .announcement-item {
+      background-color: #fff;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Дошка оголошень</h1>
+
+  <div class="register-form">
+    <h2>Зареєструватись</h2>
+    <input type="text" id="register-username" placeholder="Username" required />
+    <input type="password" id="register-password" placeholder="Password" required />
+    <button onclick="registerUser()">Зареєструватись</button>
+    <h2>Авторизуватись</h2>
+    <input type="text" id="login-username" placeholder="Username" required />
+    <input type="password" id="login-password" placeholder="Password" required />
+    <button onclick="loginUser()">Авторизуватись</button>
+  </div>
+  
+
+  <div class="announcement-form">
+    <h2>Створити оголошення</h2>
+    <input type="text" id="title" placeholder="Title" required />
+    <textarea id="description" placeholder="Description" required></textarea>
+    <input type="number" id="price" placeholder="Price" required />
+    <button onclick="createAnnouncement()">Створити</button>
+  </div>
+
+  <div class="announcements-list-wrapper" id="announcements-list-wrapper" style="display: none;">
+    <h2>Оголошення</h2>
+    <div class="announcements-list" id="announcements-list" style="display: none;"></div>
+  </div>
+  
+  
+
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+  <script>
+    const socket = io('http://localhost:3000', {
+  transports: ["websocket", "polling"] // Додаємо підтримку WebSocket та резервного запиту
+});
+  
+const token = localStorage.getItem('token');
+if (token) {
+  socket.emit('authenticate', token);
+}
+
+
+
+socket.on('connect', () => {
+  console.log("✅ WebSocket connected!");
+});
+
+socket.on('connect_error', (err) => {
+  console.error("❌ WebSocket connection error:", err);
+});
+
+    function createAnnouncement() {
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const price = document.getElementById('price').value;
+
+      console.log("📤 Sending announcement:", { title, description, price });
+
+      socket.emit('new-announcement', {
+        title,
+        description,
+        price
+      });
+    }
+
+async function loadAnnouncements() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert("You must be logged in to view announcements.");
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:3000/api/announcements', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    if (response.status === 401) {
+      alert("Unauthorized! Please log in.");
+      return;
+    }
+
+    const announcements = await response.json(); 
+    
+    document.getElementById('announcements-list-wrapper').style.display = 'block';
+    document.getElementById('announcements-list').style.display = 'block';
+
+    const announcementList = document.getElementById('announcements-list');
+    announcementList.innerHTML = ''; // Очищення перед додаванням нових оголошень
+
+
+    if (Array.isArray(announcements)) {
+      announcements.forEach(data => {
+        const announcementItem = document.createElement('div');
+        announcementItem.classList.add('announcement-item');
+        announcementItem.innerHTML = `
+          <h3>${data.title}</h3>
+          <p>${data.description}</p>
+          <p><strong>Price:</strong> $${data.price}</p>
+        `;
+        announcementList.appendChild(announcementItem);
+      });
+    } else {
+      console.error('Invalid response format:', announcements);
+    }
+  } catch (error) {
+    console.error('Error loading announcements:', error);
+  }
+}
+
+
+window.onload = function () {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    document.getElementById('announcements-list-wrapper').style.display = 'none';
+    // Якщо потрібно, приховайте й інші елементи (наприклад, форму створення оголошень)
+    document.querySelector('.announcement-form').style.display = 'none';
+  } else {
+    // Відображаємо обидва блоки
+    document.getElementById('announcements-list-wrapper').style.display = 'block';
+    document.querySelector('.announcement-form').style.display = 'block';
+    loadAnnouncements();
+  }
+};
+
+
+
+socket.on('new-announcement', (data) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.log("❌ No token found. Ignoring announcement.");
+    return;
+  }
+
+  console.log('Received new announcement:', data);
+  
+  const announcementList = document.getElementById('announcements-list');
+  const announcementItem = document.createElement('div');
+  announcementItem.classList.add('announcement-item');
+  announcementItem.innerHTML = `
+    <h3>${data.title}</h3>
+    <p>${data.description}</p>
+    <p><strong>Price:</strong> $${data.price}</p>
+  `;
+  announcementList.appendChild(announcementItem);
+});
+
+
+async function loginUser() {
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  try {
+    const response = await fetch('http://localhost:3000/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();  
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      // Повторно автентифікуємо сокет
+      socket.emit('authenticate', data.token);
+      console.log("Login successful, token saved:", data.token);
+      loadAnnouncements();
+      // Якщо потрібно, зробіть відображення інших елементів (наприклад, форми створення оголошень)
+      document.getElementById('announcements-list-wrapper').style.display = 'block';
+      document.querySelector('.announcement-form').style.display = 'block';
+    } else {
+      console.error("Token not received.");
+    }
+  } catch (error) {
+    console.error("Error during login:", error);
+  }
+}
+async function registerUser() {
+  const username = document.getElementById('register-username').value;
+  const password = document.getElementById('register-password').value;
+
+  try {
+    const response = await fetch('http://localhost:3000/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+    const token = localStorage.getItem('token');
+
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      console.log("Registration successful, token saved:", data.token);
+
+      loadAnnouncements();
+    } else {
+      console.error("Registration failed.");
+    }
+  } catch (error) {
+    console.error("Error during registration:", error);
+  }
+}
+  </script>
+
+</body>
+</html>
