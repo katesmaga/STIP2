@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML</title>
+    <style>
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+<center><h2>docker-compose.yml</h2></center>
+<pre><code>
+    version: '3.8'  
+
+    services:
+      app:
+        build: .
+        ports:
+          - "3000:3000"
+        volumes:
+          - ./app:/app
+        depends_on:
+          - mongo
+    
+      mongo:
+        image: mongo:4.4
+        volumes:
+          - ./data:/data/db
+    
+      selenium:
+        image: seleniarm/standalone-chromium:latest
+        ports:
+          - "4444:4444"
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+    
+      tester:
+        build:
+          context: .
+          dockerfile: Dockerfile.test
+        depends_on:
+          selenium:
+            condition: service_healthy
+        environment:
+          - BASE_URL=http://app:3000
+     
+</code></pre>
+</body>
+</html>
